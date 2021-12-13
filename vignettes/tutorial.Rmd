@@ -1,0 +1,170 @@
+---
+title: "Project 3: STAT302package Tutorial"
+author: "Daniel Cavazos"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{STAT302package Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(STAT302package)
+```
+
+<!-- enable scrollable code/output blocks -->
+```{r, include=FALSE}
+options(width = 60)
+local({
+  hook_output <- knitr::knit_hooks$get('output')
+  knitr::knit_hooks$set(output = function(x, options) {
+    if (!is.null(options$max.height)) options$attr.output <- c(
+      options$attr.output,
+      sprintf('style="overflow-y: scroll; max-height: %s;"', options$max.height)
+    )
+    hook_output(x, options)
+  })
+})
+```
+
+<!-- Function to print out file lines -->
+```{r include=FALSE}
+print_by_line <- function(path) {
+  for (line in readLines(path)) {
+    cat(paste0(line, "\n"))
+  }
+}
+```
+
+
+# Introduction
+
+This vignette is a part of the STAT302package. The STAT302package was created to showcase, share, and explain the functions created in the University of Washington class STAT 302: Statistical Computing. The functions with explanations are: [my_t.test](#t-test), [my_lm](#lm), and [my_knn_cv](#knn-cv).
+
+# my_t.test {#t-test}
+
+## Source Code
+
+```{r my_t.test func, echo=FALSE, message=FALSE, warning=FALSE, max.height='350px'}
+print_by_line(path = "../R/my_t.test.R")
+```
+
+## Description
+
+This function was created as a part of a lab assignment for class. It's purpose is to simulate the base R function: `t.test`.
+
+## Example
+
+Using the `my_penguins` data provided in the STAT302package, we will use `my_t.test` to test whether or not Adelie penguins' average body mass in grams is less than 4000 grams.
+
+First we set up our hypotheses.
+
+$H_0: \mu_\text{Adelie} > 4000$
+
+$H_a: \mu_\text{Adelie} < 4000$
+
+$\alpha = 0.05$
+
+Now we will use the `my_t.test` function to perform a student's t-test.
+
+```{r}
+# select body mass from Adelie species
+dat <- my_penguins[my_penguins$species == 'Adelie',]$body_mass_g
+# remove NA values
+dat <- dat[!is.na(dat)]
+
+# plug in data into my_t.test with alternative = less and mu = 4000
+out <- my_t.test(x = dat, alternative = "less", mu = 4000)
+out
+```
+
+From the output, due to our p-value of `r signif(out$p_val, digits = 4)` being less than our $\alpha$ of 0.05, we can reject our $H_0$ in favor of $H_a$. In other words, there is significant evidence that that the mean weight of Adelie species penguins is not greater than 4000, therefore, we can assume the mean weight is the opposite (less than 4000).
+
+
+# my_lm {#lm}
+
+## Source Code
+
+```{r my_lm func, echo=FALSE, message=FALSE, warning=FALSE, max.height='350px'}
+print_by_line(path = "../R/my_lm.R")
+```
+
+## Description
+
+This function was created as a part of a lab assignment for class. It's purpose is to simulate the base R function: `lm`.
+
+## Example
+
+Using the `my_lm` function and the `my_penguins` dataset included in the package, we will be testing the correlation between our independent variable `flipper_length_mm` and our dependent variable `body_mass_g`.
+
+```{r warning=FALSE}
+my_lm("body_mass_g ~ flipper_length_mm", data = my_penguins)
+```
+
+From this summary, we can see that for every mm increase in flipper length, the body mass of the penguin increases by about 49.69 grams. Looking at this value, we see it is statistically significant as the p-value of about 3.134^{-107} is less than our $\alpha$ of 0.05.
+
+
+# my_kkn_cv{#knn-cv}
+
+## Source Code
+
+```{r my_knn_cv func, echo=FALSE, message=FALSE, warning=FALSE, max.height='350px'}
+print_by_line(path = "../R/my_knn_cv.R")
+```
+
+
+## Description
+
+This function was created as a part of a lab assignment for class. It's purpose is to use k-fold cross validation to both perform and analyze the effectiveness of a k-nearest neighbors model.
+
+## Example
+
+Using the `my_knn_cv` function, we will attept to predict which species a penguin comes from using four dimensions: bill length in mm, bill depth in mm, flipper length in mm, and body mass in g. We will use 5 fold cross validation and go through using 1 neighbor for prediction to 10 neighbors for prediction.
+
+
+
+```{r warning=FALSE, fig.width=7, fig.height=4}
+# grab data
+dat <- my_penguins[,c("bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g")]
+
+# grab classifications
+dat_cl <- my_penguins[,"species"]
+
+
+# get cross validation errors from k = 1 to k = 10
+cv_errs <- numeric()
+for (k in c(1:10)) {
+  cv_errs[k] <- my_knn_cv(train = dat, cl = dat_cl, k_nn = k, k_cv = 5)$cv_err
+}
+
+
+# import ggplot to craete an accurate plot
+library(ggplot2)
+
+# create data frame to store cv_errs for use in ggplot func
+cv_df <- data.frame(x = c(1:10), y = cv_errs)
+
+ggplot(data = cv_df, aes(x = x, y = y)) +
+  geom_line() +
+  geom_point() +
+  ggtitle("CV Prediction Errors by Nearest Neighbor K") +
+  ylab("CV Prediction Error") +
+  scale_x_continuous("K Nearest Neighbor", c(1:10)) +
+  theme_classic()
+```
+
+
+Looking at the cross validation misclassification rates, I would choose K=3. Although K=1 has a lower prediction error and cross validation was used, I worry about transitioning to future, real-world data. 
+
+
+
+
+
+
+
